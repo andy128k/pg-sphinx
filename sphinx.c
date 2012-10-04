@@ -11,10 +11,15 @@ static MYSQL *connection;
 
 static SPH_BOOL ensure_sphinx_is_connected(void)
 {
+  my_bool reconnect;
+
   if (connection)
     return SPH_TRUE;
   
   connection = mysql_init(NULL);
+
+  reconnect = 1;
+  mysql_options(connection, MYSQL_OPT_RECONNECT, &reconnect);
 
   if (mysql_real_connect(connection, SPHINX_HOST, SPHINX_USER,
 			 SPHINX_PASSWORD, NULL, SPHINX_PORT, NULL, 0) == NULL)
