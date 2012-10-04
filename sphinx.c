@@ -8,7 +8,7 @@
 #include "stringbuilder.h"
 #include "log.h"
 
-static MYSQL *connection;
+static MYSQL *connection = NULL;
 
 static SPH_BOOL ensure_sphinx_is_connected(void)
 {
@@ -51,7 +51,8 @@ sphinx_context sphinx_select(const PString *index,
   char itoa_buffer[40];
   StringBuilder *sb;
 
-  ensure_sphinx_is_connected();
+  if (!ensure_sphinx_is_connected())
+    return NULL;
 
   sb = string_builder_new();
   string_builder_append(sb, "SELECT @id FROM ");

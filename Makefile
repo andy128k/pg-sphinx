@@ -8,7 +8,7 @@ libpgsphinx.la: $(OBJ)
 	libtool link gcc -module -g3 -o libpgsphinx.la $(OBJ) `mysql_config --libs_r` -rpath `pwd`
 
 .c.lo:
-	libtool compile gcc -Wall -Werror -g3 -c $(PGSQL_CFLAGS) $(MYSQL_CFLAGS) $<
+	libtool compile gcc -Wall -Wextra -Werror --std=c99 -pedantic -D_POSIX_C_SOURCE -g3 -c $(PGSQL_CFLAGS) $(MYSQL_CFLAGS) $<
 
 clean:
 	rm -rf *.o *.lo .lib
