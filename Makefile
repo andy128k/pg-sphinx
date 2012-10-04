@@ -18,5 +18,8 @@ clean:
 .SUFFIXES: .c .lo .o
 
 install: libpgsphinx.la
-	cp .libs/libpgsphinx.so.0.0.0 `pg_config --pkglibdir`/pgsphinx.so
+	$(LIBTOOL) install cp libpgsphinx.la `pg_config --pkglibdir`
+
+uninstall:
+	$(LIBTOOL) uninstall rm `pg_config --pkglibdir`/libpgsphinx.la
 

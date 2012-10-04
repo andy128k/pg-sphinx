@@ -9,7 +9,7 @@ CREATE OR REPLACE FUNCTION sphinx_select(
   /*limit*/     int,
   /*options*/   varchar)
 RETURNS SETOF sphinx_search_result
-AS 'pgsphinx.so', 'pg_sphinx_select'
+AS 'libpgsphinx', 'pg_sphinx_select'
 LANGUAGE C IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION sphinx_replace(
@@ -17,13 +17,12 @@ CREATE OR REPLACE FUNCTION sphinx_replace(
   /*id*/        int,
   /*data*/      varchar[])
 RETURNS VOID
-AS 'pgsphinx.so', 'pg_sphinx_replace'
+AS 'libpgsphinx', 'pg_sphinx_replace'
 LANGUAGE C IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION sphinx_delete(
   /*index*/     varchar,
   /*id*/        int)
 RETURNS VOID
-AS 'pgsphinx.so', 'pg_sphinx_delete'
+AS 'libpgsphinx', 'pg_sphinx_delete'
 LANGUAGE C IMMUTABLE;
-
