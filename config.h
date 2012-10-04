@@ -6,5 +6,9 @@
 #define SPHINX_USER (NULL)
 #define SPHINX_PASSWORD (NULL)
 
+#define LOGFILE ("/tmp/pg_sphinx.log")
+
+#define LOGGING_ENABLED 1
+
 #endif
 

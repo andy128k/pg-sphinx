@@ -1,7 +1,7 @@
 PGSQL_CFLAGS=-I `pg_config --includedir-server`
 MYSQL_CFLAGS=`mysql_config --cflags`
 
-SRC=pg_sphinx.c sphinx.c stringbuilder.c
+SRC=pg_sphinx.c sphinx.c stringbuilder.c log.c
 OBJ=$(SRC:.c=.lo)
 
 libpgsphinx.la: $(OBJ)

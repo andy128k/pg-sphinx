@@ -6,6 +6,7 @@
 #include "sphinx.h"
 #include "config.h"
 #include "stringbuilder.h"
+#include "log.h"
 
 static MYSQL *connection;
 
@@ -26,9 +27,11 @@ static SPH_BOOL ensure_sphinx_is_connected(void)
     {
       mysql_close(connection);
       connection = NULL;
+      Log("Can't connect to sphinx server");
       return SPH_FALSE;
     }
   
+  Log("Connecting to sphinx server");
   return SPH_TRUE;
 }
 
@@ -86,7 +89,10 @@ sphinx_context sphinx_select(const PString *index,
     }
 
   if (mysql_query(connection, sb->str))
-    return NULL;
+    {
+      Log("Can't execute query");
+      return NULL;
+    }
 
   sphinx_context ctx = malloc(sizeof(struct sphinx_context));
   ctx->result = mysql_store_result(connection);
