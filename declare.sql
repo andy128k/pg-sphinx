@@ -8,6 +8,6 @@ CREATE OR REPLACE FUNCTION sphinx_select(/*index*/     varchar,
                                          /*limit*/     int,
                                          /*options*/   varchar)
 RETURNS SETOF sphinx_search_result
-AS '/home/andy/projects/pg_sphinx/.libs/libpgsphinx.so', 'pg_sphinx_select'
+AS 'pgsphinx.so', 'pg_sphinx_select'
 LANGUAGE C IMMUTABLE;
 
