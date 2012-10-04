@@ -10,16 +10,25 @@ typedef int SPH_BOOL;
 typedef struct sphinx_context *sphinx_context;
 
 sphinx_context sphinx_select(const PString *index,
-			     const PString *match,
-			     const PString *condition,
-			     const PString *order,
-			     int offset,
-			     int limit,
-			     const PString *options);
+                             const PString *match,
+                             const PString *condition,
+                             const PString *order,
+                             int offset,
+                             int limit,
+                             const PString *options);
 SPH_BOOL sphinx_context_next(sphinx_context ctx,
-			     /*OUT*/ int *id,
-			     /*OUT*/ int *weight);
+                             /*OUT*/ int *id,
+                             /*OUT*/ int *weight);
 void sphinx_context_free(sphinx_context ctx);
+
+void sphinx_replace(const PString *index,
+                    int id,
+                    const PString *columns,
+                    const PString *values,
+                    size_t count);
+
+void sphinx_delete(const PString *index,
+                   int id);
 
 #endif
 

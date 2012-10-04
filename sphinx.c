@@ -23,7 +23,7 @@ static SPH_BOOL ensure_sphinx_is_connected(void)
   mysql_options(connection, MYSQL_OPT_RECONNECT, &reconnect);
 
   if (mysql_real_connect(connection, SPHINX_HOST, SPHINX_USER,
-			 SPHINX_PASSWORD, NULL, SPHINX_PORT, NULL, 0) == NULL)
+                         SPHINX_PASSWORD, NULL, SPHINX_PORT, NULL, 0) == NULL)
     {
       mysql_close(connection);
       connection = NULL;
@@ -35,20 +35,31 @@ static SPH_BOOL ensure_sphinx_is_connected(void)
   return SPH_TRUE;
 }
 
+static void string_builder_append_int(StringBuilder *sb, int val)
+{
+  string_builder_reserve(sb, 40);
+  sb->len += snprintf(sb->str + sb->len, 40, "%d", val);
+}
+
+static void string_builder_append_quoted(StringBuilder *sb, const PString *str)
+{
+  string_builder_reserve(sb, 2 * str->len);
+  sb->len += mysql_real_escape_string(connection, sb->str + sb->len, str->str, str->len);
+}
+
 struct sphinx_context
 {
   MYSQL_RES *result;
 };
 
 sphinx_context sphinx_select(const PString *index,
-			     const PString *match,
-			     const PString *condition,
-			     const PString *order,
-			     int offset,
-			     int limit,
-			     const PString *options)
+                             const PString *match,
+                             const PString *condition,
+                             const PString *order,
+                             int offset,
+                             int limit,
+                             const PString *options)
 {
-  char itoa_buffer[40];
   StringBuilder *sb;
 
   if (!ensure_sphinx_is_connected())
@@ -58,10 +69,7 @@ sphinx_context sphinx_select(const PString *index,
   string_builder_append(sb, "SELECT @id FROM ");
   string_builder_append_pstr(sb, index);
   string_builder_append(sb, " WHERE MATCH('");
-  
-  string_builder_reserve(sb, 2 * match->len);
-  sb->len += mysql_real_escape_string(connection, sb->str + sb->len, match->str, match->len);
-
+  string_builder_append_quoted(sb, match);
   string_builder_append(sb, "')");
   
   if (PSTR_NOT_EMPTY(condition))
@@ -78,11 +86,9 @@ sphinx_context sphinx_select(const PString *index,
       string_builder_append_pstr(sb, order);
     }
   string_builder_append(sb, " LIMIT ");
-  snprintf(itoa_buffer, sizeof(itoa_buffer), "%d", offset);
-  string_builder_append(sb, itoa_buffer);
+  string_builder_append_int(sb, offset);
   string_builder_append(sb, ", ");
-  snprintf(itoa_buffer, sizeof(itoa_buffer), "%d", limit);
-  string_builder_append(sb, itoa_buffer);
+  string_builder_append_int(sb, limit);
   if (PSTR_NOT_EMPTY(options))
     {
       string_builder_append(sb, " OPTION ");
@@ -91,7 +97,10 @@ sphinx_context sphinx_select(const PString *index,
 
   if (mysql_query(connection, sb->str))
     {
-      Log("Can't execute query");
+      Log("Can't execute select query");
+      Log(sb->str);
+      Log(mysql_error(connection));
+      string_builder_free(sb);
       return NULL;
     }
 
@@ -103,8 +112,8 @@ sphinx_context sphinx_select(const PString *index,
 }
 
 SPH_BOOL sphinx_context_next(sphinx_context ctx,
-			     int *id,
-			     int *weight)
+                             int *id,
+                             int *weight)
 {
   if (!ctx)
     return SPH_FALSE;
@@ -130,5 +139,71 @@ void sphinx_context_free(sphinx_context ctx)
       mysql_free_result(ctx->result);
       free(ctx);
     }
+}
+
+void sphinx_replace(const PString *index,
+                    int id,
+                    const PString *columns,
+                    const PString *values,
+                    size_t count)
+{
+  size_t i;
+  StringBuilder *sb;
+
+  if (!ensure_sphinx_is_connected())
+    return;
+
+  sb = string_builder_new();
+  string_builder_append(sb, "REPLACE INTO ");
+  string_builder_append_pstr(sb, index);
+  string_builder_append(sb, " (id");
+  for (i = 0; i < count; ++i)
+    {
+      string_builder_append(sb, ", `");
+      string_builder_append_pstr(sb, &columns[i]);
+      string_builder_append(sb, "`");
+    }
+  string_builder_append(sb, ") VALUES (");
+  string_builder_append_int(sb, id);
+  for (i = 0; i < count; ++i)
+    {
+      string_builder_append(sb, ", '");
+      string_builder_append_quoted(sb, &values[i]);
+      string_builder_append(sb, "'");
+    }
+  string_builder_append(sb, ")");
+
+  if (mysql_query(connection, sb->str))
+    {
+      Log("Can't execute replace query");
+      Log(sb->str);
+      Log(mysql_error(connection));
+    }
+
+  string_builder_free(sb);
+}
+
+void sphinx_delete(const PString *index,
+                   int id)
+{
+  StringBuilder *sb;
+
+  if (!ensure_sphinx_is_connected())
+    return;
+
+  sb = string_builder_new();
+  string_builder_append(sb, "DELETE FROM ");
+  string_builder_append_pstr(sb, index);
+  string_builder_append(sb, " WHERE id = ");
+  string_builder_append_int(sb, id);
+
+  if (mysql_query(connection, sb->str))
+    {
+      Log("Can't execute delete query");
+      Log(sb->str);
+      Log(mysql_error(connection));
+    }
+  
+  string_builder_free(sb);
 }
 

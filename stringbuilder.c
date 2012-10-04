@@ -66,7 +66,7 @@ void string_builder_free(StringBuilder *sb)
   if (sb)
     {
       if (sb->str)
-	free(sb->str);
+        free(sb->str);
       free(sb);
     }
 }
