@@ -1,0 +1,71 @@
+* pg-sphinx
+  
+  Pg-sphinx is a module for PostgreSQL which allows to integrate Sphinx search engine.
+
+** Installation
+
+   Note for non-linux users: GNU libtool is used to build this software. It's possible you need to define LIBTOOL variable.
+
+   #+BEGIN_SRC sh
+   export LIBTOOL=glibtool
+   #+END_SRC
+  
+   Compile
+
+   #+BEGIN_SRC sh
+   make
+   #+END_SRC
+
+   Install
+
+   #+BEGIN_SRC sh
+   sudo make install
+   #+END_SRC
+
+   Define sphinx functions in your database. Superuser is required.
+
+   #+BEGIN_SRC sh
+   psql -U postgres mydatabase < declare.sql
+   #+END_SRC
+
+   Enjoy!
+
+** Functions
+
+*** Search query
+
+   #+BEGIN_SRC sql
+   sphinx_select(
+       /*index*/     varchar,
+       /*query*/     varchar,
+       /*condition*/ varchar,
+       /*order*/     varchar,
+       /*offset*/    int,
+       /*limit*/     int,
+       /*options*/   varchar)
+   #+END_SRC
+
+   Returns pairs (id, weight).
+
+*** Update data
+
+   #+BEGIN_SRC sql
+   sphinx_replace(
+       /*index*/     varchar,
+       /*id*/        int,
+       /*data*/      varchar[])
+   #+END_SRC
+
+   Updates document with specified id. Data array must have following format:
+   ARRAY['key1', 'value2', ...]
+
+*** Delete data
+
+   #+BEGIN_SRC sql
+   sphinx_delete(
+       /*index*/     varchar,
+       /*id*/        int)
+   #+END_SRC
+
+   Removes specified document.
+
