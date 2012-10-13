@@ -77,3 +77,28 @@
 
   Removes specified document.
 
+*** Get snippet
+
+  #+BEGIN_SRC sql
+  sphinx_snippet(
+      /*index*/     varchar,
+      /*query*/     varchar,
+      /*data*/      varchar,
+      /*before*/    varchar,
+      /*after*/     varchar)
+  #+END_SRC
+
+  Returns snippets for a given data and search query.
+
+  Example:
+
+  #+BEGIN_SRC sql
+  SELECT sphinx_snippet('blog_posts', 'photo', 'There are photos from monday meeting', '<b>', '</b>')
+  #+END_SRC
+
+  This query will return following text:
+
+  #+BEGIN_SRC sql
+  'There are <b>photos</b> from monday meeting'
+  #+END_SRC
+
