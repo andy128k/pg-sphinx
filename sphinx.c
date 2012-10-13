@@ -207,3 +207,75 @@ void sphinx_delete(const PString *index,
   string_builder_free(sb);
 }
 
+void sphinx_snippet(const PString *index,
+                    const PString *match,
+                    const PString *data,
+                    const PString *before_match,
+                    const PString *after_match,
+                    return_data_callback callback,
+                    void *user_data)
+{
+  StringBuilder *sb;
+  MYSQL_RES *query_result;
+  MYSQL_ROW row;
+  unsigned long *lengths;
+
+  if (!callback)
+    return;
+
+  if (!ensure_sphinx_is_connected())
+    return;
+
+  sb = string_builder_new();
+  string_builder_append(sb, "CALL SNIPPETS('");
+  string_builder_append_quoted(sb, data);
+  string_builder_append(sb, "', '");
+  string_builder_append_quoted(sb, index);
+  string_builder_append(sb, "', '");
+  string_builder_append_quoted(sb, match);
+  string_builder_append(sb, "', '");
+  string_builder_append_quoted(sb, before_match);
+  string_builder_append(sb, "' AS before_match, '");
+  string_builder_append_quoted(sb, after_match);
+  string_builder_append(sb, "' AS after_match)");
+
+  if (mysql_query(connection, sb->str))
+    {
+      Log("Can't execute snippet query");
+      Log(sb->str);
+      Log(mysql_error(connection));
+
+      string_builder_free(sb);
+      return;
+    }
+  
+  query_result = mysql_store_result(connection);
+  if (!query_result)
+    {
+      Log("Can't store result of snippet query");
+      Log(sb->str);
+      Log(mysql_error(connection));
+
+      string_builder_free(sb);
+      return;
+    }
+  
+  row = mysql_fetch_row(query_result);
+  if (!row)
+    {
+      Log("Can't fetch result of snippet query");
+      Log(sb->str);
+      Log(mysql_error(connection));
+
+      string_builder_free(sb);
+      mysql_free_result(query_result);
+      return;
+    }
+
+  lengths = mysql_fetch_lengths(query_result);
+  callback(row[0], lengths[0], user_data);
+
+  string_builder_free(sb);
+  mysql_free_result(query_result);
+}
+

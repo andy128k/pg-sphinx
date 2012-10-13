@@ -26,6 +26,20 @@ static void to_pstring(PString *pstr, Datum d, bool isnull)
     }
 }
 
+static void varchar_to_pstring(PString *pstr, VarChar *d, bool isnull)
+{
+  if (isnull)
+    {
+      pstr->str = NULL;
+      pstr->len = 0;
+    }
+  else
+    {
+      pstr->str = VARDATA(d);
+      pstr->len = VARSIZE(d) - VARHDRSZ;
+    }
+}
+
 PG_FUNCTION_INFO_V1(pg_sphinx_select);
 Datum pg_sphinx_select(PG_FUNCTION_ARGS)
 {
@@ -56,7 +70,7 @@ Datum pg_sphinx_select(PG_FUNCTION_ARGS)
 
           funcctx->user_fctx = sphinx_select(&index, &query, &condition, &order, offset, limit, &options);
         }
-      
+
       MemoryContextSwitchTo(oldcontext);
     }
 
@@ -94,7 +108,7 @@ Datum pg_sphinx_replace(PG_FUNCTION_ARGS)
   to_pstring(&index, PG_GETARG_DATUM(0), PG_ARGISNULL(0));
 
   int id = PG_GETARG_UINT32(1);
-  
+
   ArrayType *input = PG_GETARG_ARRAYTYPE_P(2);
   // TODO: check element type. ARR_ELEMTYPE(input)
 
@@ -137,9 +151,43 @@ Datum pg_sphinx_delete(PG_FUNCTION_ARGS)
   to_pstring(&index, PG_GETARG_DATUM(0), PG_ARGISNULL(0));
 
   int id = PG_GETARG_UINT32(1);
-  
+
   sphinx_delete(&index, id);
 
   PG_RETURN_VOID();
+}
+
+static void return_text(void *data, size_t size, void *user_data)
+{
+  if (user_data)
+    {
+      text *r = palloc(VARHDRSZ + size);
+      SET_VARSIZE(r, VARHDRSZ + size);
+      memcpy((void *)VARDATA(r), data, size);
+
+      *(text **)user_data = r;
+    }
+}
+
+PG_FUNCTION_INFO_V1(pg_sphinx_snippet);
+Datum pg_sphinx_snippet(PG_FUNCTION_ARGS)
+{
+  if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2))
+    PG_RETURN_NULL();
+
+  PString index = {0, 0}, match = {0, 0}, data = {0, 0}, before_match = {0, 0}, after_match = {0, 0};
+
+  varchar_to_pstring(&index,        PG_GETARG_VARCHAR_P(0), PG_ARGISNULL(0));
+  varchar_to_pstring(&match,        PG_GETARG_VARCHAR_P(1), PG_ARGISNULL(1));
+  varchar_to_pstring(&data,         PG_GETARG_VARCHAR_P(2), PG_ARGISNULL(2));
+  varchar_to_pstring(&before_match, PG_GETARG_VARCHAR_P(3), PG_ARGISNULL(3));
+  varchar_to_pstring(&after_match,  PG_GETARG_VARCHAR_P(4), PG_ARGISNULL(4));
+
+  text *result_text = NULL;
+
+  sphinx_snippet(&index, &match, &data, &before_match, &after_match,
+                 return_text, &result_text);
+
+  PG_RETURN_TEXT_P(result_text);
 }
 

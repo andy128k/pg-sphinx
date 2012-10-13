@@ -30,5 +30,15 @@ void sphinx_replace(const PString *index,
 void sphinx_delete(const PString *index,
                    int id);
 
+typedef void (*return_data_callback)(void *data, size_t size, void *user_data);
+
+void sphinx_snippet(const PString *index,
+                    const PString *match,
+                    const PString *data,
+                    const PString *before_match,
+                    const PString *after_match,
+                    return_data_callback callback,
+                    void *user_data);
+
 #endif
 

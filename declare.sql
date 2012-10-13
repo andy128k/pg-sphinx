@@ -26,3 +26,14 @@ CREATE OR REPLACE FUNCTION sphinx_delete(
 RETURNS VOID
 AS 'libpgsphinx', 'pg_sphinx_delete'
 LANGUAGE C IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION sphinx_snippet(
+  /*index*/     varchar,
+  /*query*/     varchar,
+  /*data*/      varchar,
+  /*before*/    varchar,
+  /*after*/     varchar)
+RETURNS VARCHAR
+AS 'libpgsphinx', 'pg_sphinx_snippet'
+LANGUAGE C IMMUTABLE;
+
