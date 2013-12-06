@@ -61,6 +61,7 @@ sphinx_context sphinx_select(const PString *index,
                              const PString *options)
 {
   StringBuilder *sb;
+  sphinx_context ctx;
 
   if (!ensure_sphinx_is_connected())
     return NULL;
@@ -104,7 +105,7 @@ sphinx_context sphinx_select(const PString *index,
       return NULL;
     }
 
-  sphinx_context ctx = malloc(sizeof(struct sphinx_context));
+  ctx = malloc(sizeof(struct sphinx_context));
   ctx->result = mysql_store_result(connection);
 
   string_builder_free(sb);
@@ -115,11 +116,11 @@ SPH_BOOL sphinx_context_next(sphinx_context ctx,
                              int *id,
                              int *weight)
 {
+  MYSQL_ROW row;
+
   if (!ctx)
     return SPH_FALSE;
 
-  MYSQL_ROW row;
-  
   row = mysql_fetch_row(ctx->result);
   if (!row)
     return SPH_FALSE;

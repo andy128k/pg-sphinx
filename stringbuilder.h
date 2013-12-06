@@ -17,6 +17,7 @@ StringBuilder *string_builder_new(void);
 void string_builder_append_length(StringBuilder *sb, const char *str, size_t len);
 void string_builder_append(StringBuilder *sb, const char *str);
 void string_builder_append_pstr(StringBuilder *sb, const PString *pstr);
+char *string_builder_detach(StringBuilder *sb);
 void string_builder_reserve(StringBuilder *sb, size_t len);
 void string_builder_free(StringBuilder *sb);
 

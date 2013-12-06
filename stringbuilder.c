@@ -8,7 +8,9 @@ static inline size_t align_size(size_t num)
 
 StringBuilder *string_builder_new(void)
 {
-  StringBuilder *sb = malloc(sizeof(struct _StringBuilder));
+  StringBuilder *sb;
+
+  sb = malloc(sizeof(struct _StringBuilder));
   sb->allocated_len = 0;
   sb->len = 0;
   sb->str = NULL;
@@ -52,9 +54,11 @@ void string_builder_append_pstr(StringBuilder *sb, const PString *pstr)
 
 char *string_builder_detach(StringBuilder *sb)
 {
+  char *str;
+
   if (!sb)
     return NULL;
-  char *str = sb->str;
+  str = sb->str;
   sb->allocated_len = 0;
   sb->len = 0;
   sb->str = NULL;

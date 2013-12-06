@@ -1,0 +1,6 @@
+# sphinx extension
+comment = 'Connector to SphinxSearch server'
+default_version = '0.1'
+module_pathname = '$libdir/sphinx'
+relocatable = true
+
