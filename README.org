@@ -1,17 +1,9 @@
 * pg-sphinx
   
-  Pg-sphinx is a module for PostgreSQL which allows to integrate Sphinx search engine.
+  Pg-sphinx is an extension for PostgreSQL which allows to integrate Sphinx search engine.
 
 ** Installation
 
-*** Note for non-linux users
-
-  GNU libtool is used to build this software. It's possible you need to define LIBTOOL variable.
-
-  #+BEGIN_SRC sh
-  export LIBTOOL=glibtool
-  #+END_SRC
-  
 *** Compile
 
   #+BEGIN_SRC sh
@@ -29,7 +21,7 @@
   Superuser is required.
 
   #+BEGIN_SRC sh
-  psql -U postgres mydatabase < declare.sql
+  echo 'CREATE EXTENSION sphinx;' | psql -U postgres mydatabase
   #+END_SRC
 
 *** Uninstall
