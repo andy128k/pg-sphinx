@@ -15,7 +15,8 @@ sphinx_context sphinx_select(const PString *index,
                              const PString *order,
                              int offset,
                              int limit,
-                             const PString *options);
+                             const PString *options,
+                             char **error);
 SPH_BOOL sphinx_context_next(sphinx_context ctx,
                              /*OUT*/ int *id,
                              /*OUT*/ int *weight);
@@ -25,10 +26,12 @@ void sphinx_replace(const PString *index,
                     int id,
                     const PString *columns,
                     const PString *values,
-                    size_t count);
+                    size_t count,
+                    char **error);
 
 void sphinx_delete(const PString *index,
-                   int id);
+                   int id,
+                   char **error);
 
 typedef void (*return_data_callback)(void *data, size_t size, void *user_data);
 
@@ -38,7 +41,8 @@ void sphinx_snippet(const PString *index,
                     const PString *before_match,
                     const PString *after_match,
                     return_data_callback callback,
-                    void *user_data);
+                    void *user_data,
+                    char **error);
 
 #endif
 

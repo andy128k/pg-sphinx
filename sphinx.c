@@ -6,11 +6,11 @@
 #include "sphinx.h"
 #include "config.h"
 #include "stringbuilder.h"
-#include "log.h"
+#include "error.h"
 
 static MYSQL *connection = NULL;
 
-static SPH_BOOL ensure_sphinx_is_connected(void)
+static SPH_BOOL ensure_sphinx_is_connected(char **error)
 {
   my_bool reconnect;
 
@@ -25,13 +25,14 @@ static SPH_BOOL ensure_sphinx_is_connected(void)
   if (mysql_real_connect(connection, SPHINX_HOST, SPHINX_USER,
                          SPHINX_PASSWORD, NULL, SPHINX_PORT, NULL, 0) == NULL)
     {
+      REPORT(error, "Can't connect to sphinx server. ", mysql_error(connection));
+
       mysql_close(connection);
       connection = NULL;
-      Log("Can't connect to sphinx server");
+
       return SPH_FALSE;
     }
-  
-  Log("Connecting to sphinx server");
+
   return SPH_TRUE;
 }
 
@@ -58,12 +59,13 @@ sphinx_context sphinx_select(const PString *index,
                              const PString *order,
                              int offset,
                              int limit,
-                             const PString *options)
+                             const PString *options,
+                             char **error)
 {
   StringBuilder *sb;
   sphinx_context ctx;
 
-  if (!ensure_sphinx_is_connected())
+  if (!ensure_sphinx_is_connected(error))
     return NULL;
 
   sb = string_builder_new();
@@ -98,9 +100,7 @@ sphinx_context sphinx_select(const PString *index,
 
   if (mysql_query(connection, sb->str))
     {
-      Log("Can't execute select query");
-      Log(sb->str);
-      Log(mysql_error(connection));
+      REPORT(error, "Can't execute select query: ", sb->str, "; ", mysql_error(connection));
       string_builder_free(sb);
       return NULL;
     }
@@ -146,12 +146,13 @@ void sphinx_replace(const PString *index,
                     int id,
                     const PString *columns,
                     const PString *values,
-                    size_t count)
+                    size_t count,
+                    char **error)
 {
   size_t i;
   StringBuilder *sb;
 
-  if (!ensure_sphinx_is_connected())
+  if (!ensure_sphinx_is_connected(error))
     return;
 
   sb = string_builder_new();
@@ -175,21 +176,18 @@ void sphinx_replace(const PString *index,
   string_builder_append(sb, ")");
 
   if (mysql_query(connection, sb->str))
-    {
-      Log("Can't execute replace query");
-      Log(sb->str);
-      Log(mysql_error(connection));
-    }
+    REPORT(error, "Can't execute replace query: ", sb->str, "; ", mysql_error(connection));
 
   string_builder_free(sb);
 }
 
 void sphinx_delete(const PString *index,
-                   int id)
+                   int id,
+                   char **error)
 {
   StringBuilder *sb;
 
-  if (!ensure_sphinx_is_connected())
+  if (!ensure_sphinx_is_connected(error))
     return;
 
   sb = string_builder_new();
@@ -199,12 +197,8 @@ void sphinx_delete(const PString *index,
   string_builder_append_int(sb, id);
 
   if (mysql_query(connection, sb->str))
-    {
-      Log("Can't execute delete query");
-      Log(sb->str);
-      Log(mysql_error(connection));
-    }
-  
+    REPORT(error, "Can't execute delete query: ", sb->str, "; ", mysql_error(connection));
+
   string_builder_free(sb);
 }
 
@@ -214,7 +208,8 @@ void sphinx_snippet(const PString *index,
                     const PString *before_match,
                     const PString *after_match,
                     return_data_callback callback,
-                    void *user_data)
+                    void *user_data,
+                    char **error)
 {
   StringBuilder *sb;
   MYSQL_RES *query_result;
@@ -224,7 +219,7 @@ void sphinx_snippet(const PString *index,
   if (!callback)
     return;
 
-  if (!ensure_sphinx_is_connected())
+  if (!ensure_sphinx_is_connected(error))
     return;
 
   sb = string_builder_new();
@@ -242,10 +237,7 @@ void sphinx_snippet(const PString *index,
 
   if (mysql_query(connection, sb->str))
     {
-      Log("Can't execute snippet query");
-      Log(sb->str);
-      Log(mysql_error(connection));
-
+      REPORT(error, "Can't execute snippet query: ", sb->str, "; ", mysql_error(connection));
       string_builder_free(sb);
       return;
     }
@@ -253,10 +245,7 @@ void sphinx_snippet(const PString *index,
   query_result = mysql_store_result(connection);
   if (!query_result)
     {
-      Log("Can't store result of snippet query");
-      Log(sb->str);
-      Log(mysql_error(connection));
-
+      REPORT(error, "Can't store result of snippet query: ", sb->str, "; ", mysql_error(connection));
       string_builder_free(sb);
       return;
     }
@@ -264,10 +253,7 @@ void sphinx_snippet(const PString *index,
   row = mysql_fetch_row(query_result);
   if (!row)
     {
-      Log("Can't fetch result of snippet query");
-      Log(sb->str);
-      Log(mysql_error(connection));
-
+      REPORT(error, "Can't fetch result of snippet query: ", sb->str, "; ", mysql_error(connection));
       string_builder_free(sb);
       mysql_free_result(query_result);
       return;

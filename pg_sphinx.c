@@ -3,6 +3,7 @@
 #include <funcapi.h>
 #include <utils/builtins.h>
 #include <utils/array.h>
+#include <utils/elog.h>
 #include <catalog/pg_type.h>
 
 #if PG_VERSION_NUM >= 90300
@@ -10,7 +11,6 @@
 #endif
 
 #include "sphinx.h"
-#include "log.h"
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
@@ -61,6 +61,7 @@ Datum pg_sphinx_select(PG_FUNCTION_ARGS)
   FuncCallContext *funcctx;
   sphinx_context ctx;
   int id, weight;
+  char *error = NULL;
 
   if (SRF_IS_FIRSTCALL())
     {
@@ -71,8 +72,16 @@ Datum pg_sphinx_select(PG_FUNCTION_ARGS)
 
       funcctx->tuple_desc = BlessTupleDesc(RelationNameGetTupleDesc("sphinx_search_result"));
 
-      if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
-        funcctx->user_fctx = NULL;
+      if (PG_ARGISNULL(0))
+        {
+          funcctx->user_fctx = NULL;
+          elog(ERROR, "%s", "'index' parameter has to be a valid name of search index but NULL was given.");
+        }
+      else if (PG_ARGISNULL(1))
+        {
+          funcctx->user_fctx = NULL;
+          elog(ERROR, "%s", "'query' parameter has to be a search query but NULL was given.");
+        }
       else
         {
           PString index = {0, 0}, query = {0, 0}, condition = {0, 0}, order = {0, 0}, options = {0, 0};
@@ -85,8 +94,14 @@ Datum pg_sphinx_select(PG_FUNCTION_ARGS)
           limit  = PG_ARGISNULL(5) ? 20 : PG_GETARG_UINT32(5);
           TO_PSTRING(options,   PG_GETARG_DATUM(6), PG_ARGISNULL(6));
 
-          funcctx->user_fctx = sphinx_select(&index, &query, &condition, &order, offset, limit, &options);
+          funcctx->user_fctx = sphinx_select(&index, &query, &condition, &order, offset, limit, &options, &error);
         }
+
+      if (error) {
+        elog(ERROR, "%s", error);
+        free(error);
+        error = NULL;
+      }
 
       MemoryContextSwitchTo(oldcontext);
     }
@@ -125,6 +140,7 @@ Datum pg_sphinx_replace(PG_FUNCTION_ARGS)
   Datum value;
   bool isnull;
   size_t i;
+  char *error = NULL;
 
   if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2))
     PG_RETURN_VOID();
@@ -154,7 +170,11 @@ Datum pg_sphinx_replace(PG_FUNCTION_ARGS)
     }
   array_free_iterator(iter);
 
-  sphinx_replace(&index, id, columns, values, len);
+  sphinx_replace(&index, id, columns, values, len, &error);
+  if (error) {
+    elog(ERROR, "%s", error);
+    free(error);
+  }
 
   pfree(columns);
   pfree(values);
@@ -166,6 +186,7 @@ Datum pg_sphinx_delete(PG_FUNCTION_ARGS)
 {
   PString index = {0, 0};
   int id;
+  char *error = NULL;
 
   if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
     PG_RETURN_VOID();
@@ -173,7 +194,11 @@ Datum pg_sphinx_delete(PG_FUNCTION_ARGS)
   TO_PSTRING(index, PG_GETARG_DATUM(0), 0);
   id = PG_GETARG_UINT32(1);
 
-  sphinx_delete(&index, id);
+  sphinx_delete(&index, id, &error);
+  if (error) {
+    elog(ERROR, "%s", error);
+    free(error);
+  }
 
   PG_RETURN_VOID();
 }
@@ -194,6 +219,7 @@ Datum pg_sphinx_snippet(PG_FUNCTION_ARGS)
 {
   PString index = {0, 0}, match = {0, 0}, data = {0, 0}, before_match = {0, 0}, after_match = {0, 0};
   text *result_text = NULL;
+  char *error = NULL;
 
   if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2))
     PG_RETURN_NULL();
@@ -205,7 +231,12 @@ Datum pg_sphinx_snippet(PG_FUNCTION_ARGS)
   VARCHAR_TO_PSTRING(after_match,  PG_GETARG_VARCHAR_P(4), PG_ARGISNULL(4));
 
   sphinx_snippet(&index, &match, &data, &before_match, &after_match,
-                 return_text, &result_text);
+                 return_text, &result_text, &error);
+
+  if (error) {
+    elog(ERROR, "%s", error);
+    free(error);
+  }
 
   if (result_text)
     PG_RETURN_TEXT_P(result_text);
