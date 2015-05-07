@@ -3,7 +3,7 @@
 
 static inline size_t align_size(size_t num)
 {
-  return (num + 4095) / 4096 * 4096;
+  return (num + 1023) / 1024 * 1024;
 }
 
 StringBuilder *string_builder_new(void)
