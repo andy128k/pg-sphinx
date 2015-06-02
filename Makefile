@@ -3,8 +3,8 @@ OBJS = pg_sphinx.o sphinx.o pstring.o stringbuilder.o error.o
 EXTENSION = sphinx
 DATA = sphinx--0.3.sql sphinx--0.2--0.3.sql sphinx--0.1--0.2.sql
 
-PG_CPPFLAGS=`mysql_config --cflags`
-SHLIB_LINK=`mysql_config --libs_r`
+PG_CPPFLAGS=`mysql_config --cflags` -g3
+SHLIB_LINK=`mysql_config --libs_r` -g3
 
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
@@ -23,6 +23,7 @@ deb-package:
 		--pkggroup database \
 		--maintainer 'Andrey Kutejko \<andy128k@gmail.com\>' \
 		-y \
+		--strip=no \
 		make install
 	rm description-pak
 	rm -rf doc-pak
