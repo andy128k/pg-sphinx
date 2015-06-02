@@ -4,13 +4,21 @@
 #include <mysql.h>
 
 #include "sphinx.h"
-#include "config.h"
 #include "stringbuilder.h"
 #include "error.h"
 
+void default_config(sphinx_config *config)
+{
+  strcpy(config->host, "127.0.0.1");
+  config->port = 9306;
+  config->username[0] = '\0';
+  config->password[0] = '\0';
+  config->prefix[0] = '\0';
+}
+
 static MYSQL *connection = NULL;
 
-static SPH_BOOL ensure_sphinx_is_connected(char **error)
+static SPH_BOOL ensure_sphinx_is_connected(sphinx_config *config, char **error)
 {
   my_bool reconnect;
 
@@ -22,8 +30,8 @@ static SPH_BOOL ensure_sphinx_is_connected(char **error)
   reconnect = 1;
   mysql_options(connection, MYSQL_OPT_RECONNECT, &reconnect);
 
-  if (mysql_real_connect(connection, SPHINX_HOST, SPHINX_USER,
-                         SPHINX_PASSWORD, NULL, SPHINX_PORT, NULL, 0) == NULL)
+  if (mysql_real_connect(connection, config->host, config->username,
+                         config->password, NULL, config->port, NULL, 0) == NULL)
     {
       REPORT(error, "Can't connect to sphinx server. ", mysql_error(connection));
 
@@ -53,7 +61,8 @@ struct sphinx_context
   MYSQL_RES *result;
 };
 
-sphinx_context sphinx_select(const PString *index,
+sphinx_context sphinx_select(sphinx_config *config,
+                             const PString *index,
                              const PString *match,
                              const PString *condition,
                              const PString *order,
@@ -65,11 +74,12 @@ sphinx_context sphinx_select(const PString *index,
   StringBuilder *sb;
   sphinx_context ctx;
 
-  if (!ensure_sphinx_is_connected(error))
+  if (!ensure_sphinx_is_connected(config, error))
     return NULL;
 
   sb = string_builder_new();
   string_builder_append(sb, "SELECT id, weight() AS weight FROM ");
+  string_builder_append(sb, config->prefix);
   string_builder_append_pstr(sb, index);
   string_builder_append(sb, " WHERE MATCH('");
   string_builder_append_quoted(sb, match);
@@ -142,7 +152,8 @@ void sphinx_context_free(sphinx_context ctx)
     }
 }
 
-void sphinx_replace(const PString *index,
+void sphinx_replace(sphinx_config *config,
+                    const PString *index,
                     int id,
                     const PString *columns,
                     const PString *values,
@@ -152,11 +163,12 @@ void sphinx_replace(const PString *index,
   size_t i;
   StringBuilder *sb;
 
-  if (!ensure_sphinx_is_connected(error))
+  if (!ensure_sphinx_is_connected(config, error))
     return;
 
   sb = string_builder_new();
   string_builder_append(sb, "REPLACE INTO ");
+  string_builder_append(sb, config->prefix);
   string_builder_append_pstr(sb, index);
   string_builder_append(sb, " (id");
   for (i = 0; i < count; ++i)
@@ -181,17 +193,19 @@ void sphinx_replace(const PString *index,
   string_builder_free(sb);
 }
 
-void sphinx_delete(const PString *index,
+void sphinx_delete(sphinx_config *config,
+                   const PString *index,
                    int id,
                    char **error)
 {
   StringBuilder *sb;
 
-  if (!ensure_sphinx_is_connected(error))
+  if (!ensure_sphinx_is_connected(config, error))
     return;
 
   sb = string_builder_new();
   string_builder_append(sb, "DELETE FROM ");
+  string_builder_append(sb, config->prefix);
   string_builder_append_pstr(sb, index);
   string_builder_append(sb, " WHERE id = ");
   string_builder_append_int(sb, id);
@@ -202,7 +216,8 @@ void sphinx_delete(const PString *index,
   string_builder_free(sb);
 }
 
-void sphinx_snippet(const PString *index,
+void sphinx_snippet(sphinx_config *config,
+                    const PString *index,
                     const PString *match,
                     const PString *data,
                     const PString *before_match,
@@ -219,14 +234,15 @@ void sphinx_snippet(const PString *index,
   if (!callback)
     return;
 
-  if (!ensure_sphinx_is_connected(error))
+  if (!ensure_sphinx_is_connected(config, error))
     return;
 
   sb = string_builder_new();
   string_builder_append(sb, "CALL SNIPPETS('");
   string_builder_append_quoted(sb, data);
   string_builder_append(sb, "', '");
-  string_builder_append_quoted(sb, index);
+  string_builder_append(sb, config->prefix);
+  string_builder_append_pstr(sb, index);
   string_builder_append(sb, "', '");
   string_builder_append_quoted(sb, match);
   string_builder_append(sb, "', '");

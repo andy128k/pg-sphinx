@@ -1,7 +1,7 @@
 MODULE_big = sphinx
 OBJS = pg_sphinx.o sphinx.o stringbuilder.o error.o
 EXTENSION = sphinx
-DATA = sphinx--0.1.sql
+DATA = sphinx--0.2.sql sphinx--0.1--0.2.sql
 
 PG_CPPFLAGS=`mysql_config --cflags`
 SHLIB_LINK=`mysql_config --libs_r`
@@ -18,7 +18,7 @@ deb-package:
 		--install=no \
 		--backup=no \
 		--pkgname pg-sphinx \
-		--pkgversion 0.1 \
+		--pkgversion 0.2 \
 		--pkglicense MIT \
 		--pkggroup database \
 		--maintainer 'Andrey Kutejko \<andy128k@gmail.com\>' \
