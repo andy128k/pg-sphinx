@@ -69,7 +69,7 @@ sphinx_context sphinx_select(const PString *index,
     return NULL;
 
   sb = string_builder_new();
-  string_builder_append(sb, "SELECT @id FROM ");
+  string_builder_append(sb, "SELECT id, weight() AS weight FROM ");
   string_builder_append_pstr(sb, index);
   string_builder_append(sb, " WHERE MATCH('");
   string_builder_append_quoted(sb, match);
@@ -80,8 +80,8 @@ sphinx_context sphinx_select(const PString *index,
       string_builder_append(sb, " AND ");
       string_builder_append_pstr(sb, condition);
     }
-  
-  string_builder_append(sb, " GROUP BY @id WITHIN GROUP ORDER BY @weight DESC ");
+
+  string_builder_append(sb, " GROUP BY id WITHIN GROUP ORDER BY weight DESC ");
 
   if (PSTR_NOT_EMPTY(order))
     {
