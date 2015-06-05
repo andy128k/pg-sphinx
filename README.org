@@ -30,6 +30,16 @@
   sudo make uninstall
   #+END_SRC
 
+** Configuration
+
+   Extension can be configured by modifying corresponding rows in table sphinx_config.
+   Following options are available: 'host', 'post', 'username', 'password', 'prefix'.
+
+   'Prefix' is a string which is prepended to index names. This option is useful to simulate
+   namespaces. For example, if prefix is 'test_' and index name in a request is 'blog_posts',
+   real request will be addressed to index named 'test_blog_posts'.
+
+
 ** Functions
 
 *** Search query
