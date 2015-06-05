@@ -22,7 +22,7 @@ deb-package:
 		--pkglicense MIT \
 		--pkggroup database \
 		--maintainer 'Andrey Kutejko \<andy128k@gmail.com\>' \
-		-y
+		-y \
 		make install
 	rm description-pak
 	rm -rf doc-pak
