@@ -47,7 +47,7 @@ GRANT ALL ON sphinx_config TO PUBLIC;
 
 INSERT INTO sphinx_config ("key", "value") VALUES
   ('host', '127.0.0.1'),
-  ('post', '9306'),
+  ('port', '9306'),
   ('username', ''),
   ('password', ''),
   ('prefix', '');
