@@ -213,7 +213,11 @@ Datum pg_sphinx_replace(PG_FUNCTION_ARGS)
   columns = palloc(sizeof(PString) * len);
   values  = palloc(sizeof(PString) * len);
 
+#if PG_VERSION_NUM >= 90500
+  iter = array_create_iterator(input, 0, NULL);
+#else
   iter = array_create_iterator(input, 0);
+#endif
   i = 0;
   for (; array_iterate(iter, &value, &isnull); ++i)
     {
