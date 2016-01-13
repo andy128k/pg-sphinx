@@ -1,0 +1,20 @@
+language: "C"
+
+matrix:
+  include:
+    - addons:
+        apt:
+          packages:
+            - postgresql-server-dev-9.3
+    - addons:
+        apt:
+          packages:
+            - postgresql-server-dev-9.4
+    - addons:
+        apt:
+          packages:
+            - postgresql-server-dev-9.5
+
+script:
+  - make
+

@@ -1,5 +1,7 @@
 * pg-sphinx
-  
+
+  [[https://travis-ci.org/andy128k/pg-sphinx][https://travis-ci.org/andy128k/pg-sphinx.svg?branch=master]]
+
   Pg-sphinx is an extension for PostgreSQL which allows to integrate Sphinx search engine.
 
 ** Installation
