@@ -282,3 +282,70 @@ void sphinx_snippet(sphinx_config *config,
   mysql_free_result(query_result);
 }
 
+void sphinx_snippet_options(sphinx_config *config,
+                            const PString *index,
+                            const PString *match,
+                            const PString *data,
+                            const PString *options,
+                            return_data_callback callback,
+                            void *user_data,
+                            char **error)
+{
+  StringBuilder *sb;
+  MYSQL_RES *query_result;
+  MYSQL_ROW row;
+  unsigned long *lengths;
+
+  if (!callback)
+    return;
+
+  if (!ensure_sphinx_is_connected(config, error))
+    return;
+
+  sb = string_builder_new();
+  string_builder_append(sb, "CALL SNIPPETS('");
+  string_builder_append_quoted(sb, data);
+  string_builder_append(sb, "', '");
+  string_builder_append(sb, config->prefix);
+  string_builder_append_pstr(sb, index);
+  string_builder_append(sb, "', '");
+  string_builder_append_quoted(sb, match);
+  string_builder_append(sb, "'");
+
+  if (PSTR_NOT_EMPTY(options)) {
+    string_builder_append(sb, ",");
+    string_builder_append_pstr(sb, options);
+  }
+  string_builder_append(sb, ")");
+
+  if (mysql_query(connection, sb->str))
+    {
+      REPORT(error, "Can't execute snippet query: ", sb->str, "; ", mysql_error(connection));
+      string_builder_free(sb);
+      return;
+    }
+
+  query_result = mysql_store_result(connection);
+  if (!query_result)
+    {
+      REPORT(error, "Can't store result of snippet query: ", sb->str, "; ", mysql_error(connection));
+      string_builder_free(sb);
+      return;
+    }
+
+  row = mysql_fetch_row(query_result);
+  if (!row)
+    {
+      REPORT(error, "Can't fetch result of snippet query: ", sb->str, "; ", mysql_error(connection));
+      string_builder_free(sb);
+      mysql_free_result(query_result);
+      return;
+    }
+
+  lengths = mysql_fetch_lengths(query_result);
+  callback(row[0], lengths[0], user_data);
+
+  string_builder_free(sb);
+  mysql_free_result(query_result);
+}
+
