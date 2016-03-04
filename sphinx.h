@@ -58,5 +58,14 @@ void sphinx_snippet(sphinx_config *config,
                     void *user_data,
                     char **error);
 
+void sphinx_snippet_options(sphinx_config *config,
+                            const PString *index,
+                            const PString *match,
+                            const PString *data,
+                            const PString *options,
+                            return_data_callback callback,
+                            void *user_data,
+                            char **error);
+
 #endif
 

@@ -307,3 +307,34 @@ Datum pg_sphinx_snippet(PG_FUNCTION_ARGS)
     PG_RETURN_NULL();
 }
 
+Datum pg_sphinx_snippet_options(PG_FUNCTION_ARGS)
+{
+  PString index = {0, 0}, match = {0, 0}, data = {0, 0}, options = {0, 0};
+  text *result_text = NULL;
+  char *error = NULL;
+  sphinx_config config;
+
+  if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2))
+    PG_RETURN_NULL();
+
+  VARCHAR_TO_PSTRING(index,        PG_GETARG_VARCHAR_P(0), 0);
+  VARCHAR_TO_PSTRING(match,        PG_GETARG_VARCHAR_P(1), 0);
+  VARCHAR_TO_PSTRING(data,         PG_GETARG_VARCHAR_P(2), 0);
+  VARCHAR_TO_PSTRING(options,      PG_GETARG_VARCHAR_P(3), PG_ARGISNULL(3));
+
+  fetch_config(&config);
+  sphinx_snippet_options(&config, &index, &match, &data, &options,
+                         return_text, &result_text, &error);
+
+  if (error) {
+    elog(ERROR, "%s", error);
+    free(error);
+  }
+
+  if (result_text)
+    PG_RETURN_TEXT_P(result_text);
+  else
+    PG_RETURN_NULL();
+}
+
+
