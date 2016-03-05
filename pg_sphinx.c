@@ -11,6 +11,7 @@
 #include <access/htup_details.h>
 #endif
 
+#include "dict.h"
 #include "sphinx.h"
 
 #ifdef PG_MODULE_MAGIC
@@ -182,36 +183,22 @@ Datum pg_sphinx_select(PG_FUNCTION_ARGS)
     }
 }
 
-Datum pg_sphinx_replace(PG_FUNCTION_ARGS)
+static int array_to_dict(ArrayType *input, Dict *dict)
 {
-  PString index = {0, 0};
-  int id;
-  ArrayType *input;
-  size_t len;
-  PString *columns, *values;
   ArrayIterator iter;
+  size_t i;
   Datum value;
   bool isnull;
-  size_t i;
-  char *error = NULL;
-  sphinx_config config;
-
-  if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2))
-    PG_RETURN_VOID();
-
-  TO_PSTRING(index, PG_GETARG_DATUM(0), 0);
-  id = PG_GETARG_UINT32(1);
-  input = PG_GETARG_ARRAYTYPE_P(2);
 
   // TODO: check element type. ARR_ELEMTYPE(input)
 
   // one dimensional even length array
   if (ARR_NDIM(input) != 1 || ARR_DIMS(input)[0] % 2 == 1)
-    PG_RETURN_VOID();
+    return -1;
 
-  len = ARR_DIMS(input)[0] / 2;
-  columns = palloc(sizeof(PString) * len);
-  values  = palloc(sizeof(PString) * len);
+  dict->len = ARR_DIMS(input)[0] / 2;
+  dict->names = palloc(sizeof(PString) * dict->len);
+  dict->values = palloc(sizeof(PString) * dict->len);
 
 #if PG_VERSION_NUM >= 90500
   iter = array_create_iterator(input, 0, NULL);
@@ -222,21 +209,42 @@ Datum pg_sphinx_replace(PG_FUNCTION_ARGS)
   for (; array_iterate(iter, &value, &isnull); ++i)
     {
       if (i % 2 == 0)
-        TO_PSTRING(columns[i / 2], value, isnull);
+        TO_PSTRING(dict->names[i / 2], value, isnull);
       else
-        TO_PSTRING(values[i / 2], value, isnull);
+        TO_PSTRING(dict->values[i / 2], value, isnull);
     }
   array_free_iterator(iter);
+  return 0;
+}
+
+Datum pg_sphinx_replace(PG_FUNCTION_ARGS)
+{
+  PString index = {0, 0};
+  int id;
+  ArrayType *input;
+  char *error = NULL;
+  sphinx_config config;
+  Dict data;
+
+  if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2))
+    PG_RETURN_VOID();
+
+  TO_PSTRING(index, PG_GETARG_DATUM(0), 0);
+  id = PG_GETARG_UINT32(1);
+  input = PG_GETARG_ARRAYTYPE_P(2);
+
+  if (array_to_dict(input, &data))
+    PG_RETURN_VOID();
 
   fetch_config(&config);
-  sphinx_replace(&config, &index, id, columns, values, len, &error);
+  sphinx_replace(&config, &index, id, data.names, data.values, data.len, &error);
   if (error) {
     elog(ERROR, "%s", error);
     free(error);
   }
 
-  pfree(columns);
-  pfree(values);
+  pfree(data.names);
+  pfree(data.values);
 
   PG_RETURN_VOID();
 }
