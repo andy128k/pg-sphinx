@@ -6,6 +6,8 @@ DATA = sphinx--0.3.sql sphinx--0.2--0.3.sql sphinx--0.1--0.2.sql
 PG_CPPFLAGS=`mysql_config --cflags`
 SHLIB_LINK=`mysql_config --libs_r`
 
+REGRESS=basic nulls
+
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
