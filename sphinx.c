@@ -219,13 +219,13 @@ void sphinx_snippet(sphinx_config *config,
                     const PString *index,
                     const PString *match,
                     const PString *data,
-                    const PString *before_match,
-                    const PString *after_match,
+                    const Dict *options,
                     return_data_callback callback,
                     void *user_data,
                     char **error)
 {
   StringBuilder *sb;
+  size_t i;
   MYSQL_RES *query_result;
   MYSQL_ROW row;
   unsigned long *lengths;
@@ -244,11 +244,60 @@ void sphinx_snippet(sphinx_config *config,
   string_builder_append_pstr(sb, index);
   string_builder_append(sb, "', ");
   string_builder_append_sql_string(sb, match);
-  string_builder_append(sb, ", ");
-  string_builder_append_sql_string(sb, before_match);
-  string_builder_append(sb, " AS before_match, ");
-  string_builder_append_sql_string(sb, after_match);
-  string_builder_append(sb, " AS after_match)");
+
+  for (i = 0; i < options->len; ++i)
+    {
+      if (pstring_is_one_of(&options->names[i],
+                            "before_match",
+                            "after_match",
+                            "chunk_separator",
+                            "html_strip_mode",
+                            "passage_boundary",
+                            NULL))
+        {
+          // string
+          string_builder_append(sb, ", ");
+          string_builder_append_sql_string(sb, &options->values[i]);
+          string_builder_append(sb, " AS ");
+          string_builder_append_pstr(sb, &options->names[i]);
+        }
+      else if (pstring_is_one_of(&options->names[i],
+                                 "limit",
+                                 "around",
+                                 "limit_passages",
+                                 "limit_words",
+                                 "start_passage_id",
+                                 NULL))
+        {
+          // integer
+          int value = pstring_to_integer(&options->values[i]);
+          string_builder_append(sb, ", ");
+          string_builder_append_int(sb, value);
+          string_builder_append(sb, " AS ");
+          string_builder_append_pstr(sb, &options->names[i]);
+        }
+      else if (pstring_is_one_of(&options->names[i],
+                                 "exact_phrase",
+                                 "use_boundaries",
+                                 "weight_order",
+                                 "query_mode",
+                                 "force_all_words",
+                                 "load_files",
+                                 "load_files_scattered",
+                                 "allow_empty",
+                                 "emit_zones",
+                                 NULL))
+        {
+          // bool
+          int isTrue = pstring_is_one_of(&options->values[i], "1", "t", "true", "y", "yes");
+          string_builder_append(sb, ", ");
+          string_builder_append_int(sb, isTrue);
+          string_builder_append(sb, " AS ");
+          string_builder_append_pstr(sb, &options->names[i]);
+        }
+    }
+
+  string_builder_append(sb, ")");
 
   if (mysql_query(connection, sb->str))
     {

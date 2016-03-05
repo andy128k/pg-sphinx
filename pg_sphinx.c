@@ -30,6 +30,9 @@ Datum pg_sphinx_delete(PG_FUNCTION_ARGS);
 PG_FUNCTION_INFO_V1(pg_sphinx_snippet);
 Datum pg_sphinx_snippet(PG_FUNCTION_ARGS);
 
+PG_FUNCTION_INFO_V1(pg_sphinx_snippet_options);
+Datum pg_sphinx_snippet_options(PG_FUNCTION_ARGS);
+
 #define STRLCPY(dst, src, size)                 \
   do {                                          \
     strncpy(dst, src, size);                    \
@@ -286,7 +289,12 @@ static void return_text(void *data, size_t size, void *user_data)
 
 Datum pg_sphinx_snippet(PG_FUNCTION_ARGS)
 {
-  PString index = {0, 0}, match = {0, 0}, data = {0, 0}, before_match = {0, 0}, after_match = {0, 0};
+  PString index = {0, 0}, match = {0, 0}, data = {0, 0};
+
+  PString option_names[2] = {PSTRING_CONST("before_match"), PSTRING_CONST("after_match")};
+  PString option_values[2] = {{0, 0}, {0, 0}};
+  Dict options = {2, option_names, option_values};
+
   text *result_text = NULL;
   char *error = NULL;
   sphinx_config config;
@@ -294,14 +302,49 @@ Datum pg_sphinx_snippet(PG_FUNCTION_ARGS)
   if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2))
     PG_RETURN_NULL();
 
-  VARCHAR_TO_PSTRING(index,        PG_GETARG_VARCHAR_P(0), 0);
-  VARCHAR_TO_PSTRING(match,        PG_GETARG_VARCHAR_P(1), 0);
-  VARCHAR_TO_PSTRING(data,         PG_GETARG_VARCHAR_P(2), 0);
-  VARCHAR_TO_PSTRING(before_match, PG_GETARG_VARCHAR_P(3), PG_ARGISNULL(3));
-  VARCHAR_TO_PSTRING(after_match,  PG_GETARG_VARCHAR_P(4), PG_ARGISNULL(4));
+  VARCHAR_TO_PSTRING(index,             PG_GETARG_VARCHAR_P(0), 0);
+  VARCHAR_TO_PSTRING(match,             PG_GETARG_VARCHAR_P(1), 0);
+  VARCHAR_TO_PSTRING(data,              PG_GETARG_VARCHAR_P(2), 0);
+  VARCHAR_TO_PSTRING(options.values[0], PG_GETARG_VARCHAR_P(3), PG_ARGISNULL(3));
+  VARCHAR_TO_PSTRING(options.values[1], PG_GETARG_VARCHAR_P(4), PG_ARGISNULL(4));
 
   fetch_config(&config);
-  sphinx_snippet(&config, &index, &match, &data, &before_match, &after_match,
+  sphinx_snippet(&config, &index, &match, &data, &options,
+                 return_text, &result_text, &error);
+
+  if (error) {
+    elog(ERROR, "%s", error);
+    free(error);
+  }
+
+  if (result_text)
+    PG_RETURN_TEXT_P(result_text);
+  else
+    PG_RETURN_NULL();
+}
+
+Datum pg_sphinx_snippet_options(PG_FUNCTION_ARGS)
+{
+  PString index = {0, 0}, match = {0, 0}, data = {0, 0};
+  ArrayType *input;
+  Dict options;
+  text *result_text = NULL;
+  char *error = NULL;
+  sphinx_config config;
+
+  if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2) || PG_ARGISNULL(3))
+    PG_RETURN_NULL();
+
+  VARCHAR_TO_PSTRING(index, PG_GETARG_VARCHAR_P(0), 0);
+  VARCHAR_TO_PSTRING(match, PG_GETARG_VARCHAR_P(1), 0);
+  VARCHAR_TO_PSTRING(data,  PG_GETARG_VARCHAR_P(2), 0);
+  input = PG_GETARG_ARRAYTYPE_P(3);
+
+  if (array_to_dict(input, &options))
+    PG_RETURN_NULL();
+
+  fetch_config(&config);
+  sphinx_snippet(&config, &index, &match, &data, &options,
                  return_text, &result_text, &error);
 
   if (error) {
