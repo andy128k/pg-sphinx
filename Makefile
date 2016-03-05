@@ -1,5 +1,5 @@
 MODULE_big = sphinx
-OBJS = pg_sphinx.o sphinx.o stringbuilder.o error.o
+OBJS = pg_sphinx.o sphinx.o pstring.o stringbuilder.o error.o
 EXTENSION = sphinx
 DATA = sphinx--0.2.sql sphinx--0.1--0.2.sql
 
