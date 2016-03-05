@@ -4,6 +4,9 @@
 *.la
 *.so
 .libs
+*.gcno
+*.gcda
+*.gcov
 *.deb
 /results
 
