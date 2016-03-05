@@ -106,3 +106,37 @@
   'There are <b>photos</b> from monday meeting'
   #+END_SRC
 
+
+  #+BEGIN_SRC sql
+  sphinx_snippet_options(
+      /*index*/     varchar,
+      /*query*/     varchar,
+      /*data*/      varchar,
+      /*data*/      varchar[])
+  #+END_SRC
+
+  Returns snippets for a given data and search query. This function is similar to sphinx_snippet but it also accepts
+  a list of additional options.
+
+  Because of array type limitations all values must be represented as text.
+  Integer values have to be represented as decimal values (e. g. '19').
+  For boolean values '1', 't', 'true', 'y', and 'yes' are recognized as true, any other value is considered as false.
+
+  Example (similar to previous one):
+
+  #+BEGIN_SRC sql
+  SELECT sphinx_snippet_options('blog_posts', 'photo', 'There are photos from monday meeting',
+                                ARRAY['before_match', '<b>',
+                                      'after_match', '</b>'])
+  #+END_SRC
+
+  One more example:
+
+  #+BEGIN_SRC sql
+  SELECT sphinx_snippet_options('blog_posts', 'photo', 'There are photos from monday meeting',
+                                ARRAY['before_match', '<b>',
+                                      'after_match', '</b>',
+                                      'query_mode', 'yes'])
+  #+END_SRC
+
+
