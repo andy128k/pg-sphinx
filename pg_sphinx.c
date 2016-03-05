@@ -237,7 +237,7 @@ Datum pg_sphinx_replace(PG_FUNCTION_ARGS)
     PG_RETURN_VOID();
 
   fetch_config(&config);
-  sphinx_replace(&config, &index, id, data.names, data.values, data.len, &error);
+  sphinx_replace(&config, &index, id, &data, &error);
   if (error) {
     elog(ERROR, "%s", error);
     free(error);

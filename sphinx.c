@@ -157,9 +157,7 @@ void sphinx_context_free(sphinx_context ctx)
 void sphinx_replace(sphinx_config *config,
                     const PString *index,
                     int id,
-                    const PString *columns,
-                    const PString *values,
-                    size_t count,
+                    const Dict *data,
                     char **error)
 {
   size_t i;
@@ -173,18 +171,18 @@ void sphinx_replace(sphinx_config *config,
   string_builder_append(sb, config->prefix);
   string_builder_append_pstr(sb, index);
   string_builder_append(sb, " (id");
-  for (i = 0; i < count; ++i)
+  for (i = 0; i < data->len; ++i)
     {
       string_builder_append(sb, ", `");
-      string_builder_append_pstr(sb, &columns[i]);
+      string_builder_append_pstr(sb, &data->names[i]);
       string_builder_append(sb, "`");
     }
   string_builder_append(sb, ") VALUES (");
   string_builder_append_int(sb, id);
-  for (i = 0; i < count; ++i)
+  for (i = 0; i < data->len; ++i)
     {
       string_builder_append(sb, ", ");
-      string_builder_append_sql_string(sb, &values[i]);
+      string_builder_append_sql_string(sb, &data->values[i]);
     }
   string_builder_append(sb, ")");
 

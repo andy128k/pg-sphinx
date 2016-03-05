@@ -2,6 +2,7 @@
 #define SPHINX_H_INCLUDED
 
 #include "pstring.h"
+#include "dict.h"
 
 typedef int SPH_BOOL;
 #define SPH_TRUE (1)
@@ -36,9 +37,7 @@ void sphinx_context_free(sphinx_context ctx);
 void sphinx_replace(sphinx_config *config,
                     const PString *index,
                     int id,
-                    const PString *columns,
-                    const PString *values,
-                    size_t count,
+                    const Dict *data,
                     char **error);
 
 void sphinx_delete(sphinx_config *config,
