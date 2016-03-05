@@ -50,10 +50,12 @@ static void string_builder_append_int(StringBuilder *sb, int val)
   sb->len += snprintf(sb->str + sb->len, 40, "%d", val);
 }
 
-static void string_builder_append_quoted(StringBuilder *sb, const PString *str)
+static void string_builder_append_sql_string(StringBuilder *sb, const PString *str)
 {
-  string_builder_reserve(sb, 2 * str->len);
+  string_builder_reserve(sb, 2 * str->len + 2);
+  string_builder_append(sb, "'");
   sb->len += mysql_real_escape_string(connection, sb->str + sb->len, str->str, str->len);
+  string_builder_append(sb, "'");
 }
 
 struct sphinx_context
@@ -81,9 +83,9 @@ sphinx_context sphinx_select(sphinx_config *config,
   string_builder_append(sb, "SELECT id, weight() AS weight FROM ");
   string_builder_append(sb, config->prefix);
   string_builder_append_pstr(sb, index);
-  string_builder_append(sb, " WHERE MATCH('");
-  string_builder_append_quoted(sb, match);
-  string_builder_append(sb, "')");
+  string_builder_append(sb, " WHERE MATCH(");
+  string_builder_append_sql_string(sb, match);
+  string_builder_append(sb, ")");
   
   if (PSTR_NOT_EMPTY(condition))
     {
@@ -181,9 +183,8 @@ void sphinx_replace(sphinx_config *config,
   string_builder_append_int(sb, id);
   for (i = 0; i < count; ++i)
     {
-      string_builder_append(sb, ", '");
-      string_builder_append_quoted(sb, &values[i]);
-      string_builder_append(sb, "'");
+      string_builder_append(sb, ", ");
+      string_builder_append_sql_string(sb, &values[i]);
     }
   string_builder_append(sb, ")");
 
@@ -238,18 +239,18 @@ void sphinx_snippet(sphinx_config *config,
     return;
 
   sb = string_builder_new();
-  string_builder_append(sb, "CALL SNIPPETS('");
-  string_builder_append_quoted(sb, data);
-  string_builder_append(sb, "', '");
+  string_builder_append(sb, "CALL SNIPPETS(");
+  string_builder_append_sql_string(sb, data);
+  string_builder_append(sb, ", '");
   string_builder_append(sb, config->prefix);
   string_builder_append_pstr(sb, index);
-  string_builder_append(sb, "', '");
-  string_builder_append_quoted(sb, match);
-  string_builder_append(sb, "', '");
-  string_builder_append_quoted(sb, before_match);
-  string_builder_append(sb, "' AS before_match, '");
-  string_builder_append_quoted(sb, after_match);
-  string_builder_append(sb, "' AS after_match)");
+  string_builder_append(sb, "', ");
+  string_builder_append_sql_string(sb, match);
+  string_builder_append(sb, ", ");
+  string_builder_append_sql_string(sb, before_match);
+  string_builder_append(sb, " AS before_match, ");
+  string_builder_append_sql_string(sb, after_match);
+  string_builder_append(sb, " AS after_match)");
 
   if (mysql_query(connection, sb->str))
     {
